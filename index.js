@@ -1,11 +1,14 @@
 import express from "express";
 import dayjs from "dayjs";
+import { Container } from "./src/Container.js";
+import { dbMariaDB } from "./connection/dbMariaDB.js";
 import { routerViews } from "./routes/routerViews.js";
 import { routerProductos } from "./routes/routerProductos.js";
 import { ApiProductos } from "./src/ProductosApi.js"
 import { Server as HttpServer } from "http"
 import { Server as SocketIOServer} from "socket.io"
 
+const Products = new Container(dbMariaDB, 'products')
 
 import handlebars from "express-handlebars";
 const app = express();
@@ -34,7 +37,8 @@ app.use (express.static("./public"))
 io.on("connection",socket =>{
   SendAllProducts(socket)
 
-  socket.on("nuevo producto" ,nuevoProducto =>{
+  socket.on("nuevo producto" , async nuevoProducto =>{
+    // await Products.save(nuevoProducto)
     SaveProduct(nuevoProducto)
   })
   socket.on("chat:message", (data)=>{
@@ -45,13 +49,13 @@ io.on("connection",socket =>{
 })
 
 const SendAllProducts =  async(socket)=> {
-  const Allproducts = await ApiProductos.getAll()
+  const Allproducts = await Products.getAll()
   socket.emit ("all products", Allproducts)
 }
 
 const SaveProduct = async (nuevoProducto) =>{
-  await  ApiProductos.save(nuevoProducto)
-  const Allproducts = await ApiProductos.getAll()
+  await  Products.save(nuevoProducto)
+  const Allproducts = await Products.getAll()
   io.sockets.emit("all products", Allproducts)
 }
 
